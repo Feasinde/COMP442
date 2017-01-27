@@ -15,7 +15,7 @@ class Lexer:
                 self.i_index+=1
                 if self.i_index >= len(self.s_source_program): return " "
                 return self.s_source_program[self.i_index]
-        
+
         ## Returns previous character in the source program string
         def __backupChar(self):
                 self.i_index-=1
@@ -51,11 +51,12 @@ class Lexer:
         def reader(self):
                 for i in self.s_source_program:
                         type_token = self.nextToken()
-                        if not type_token == None: print(type_token)
-
+                        print(type_token)
         def nextToken(self):
                 s_type = ""
                 c = self.__nextChar()
+                while c == " ":
+                    c = self.__nextChar()
                 ## Determine if c is a letter
                 letter_match = re.search("[a-zA-Z]", c)
                 if letter_match:
@@ -119,7 +120,7 @@ class Lexer:
                                 return ("FRAC", s_token)
                         c = self.__backupChar()
                         return ("PUNCT", c)
-                
+
                 ## Determine if c is any punctuation mark of
                 ## the following: ; : ,
                 if c == ";" or c == ":" or c == ",": return ("PUNCT", c)

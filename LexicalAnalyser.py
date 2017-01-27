@@ -58,16 +58,16 @@ class Lexer:
                 while c == " ":
                     c = self.__nextChar()
                 ## Determine if c is a letter
-                letter_match = re.search("[a-zA-Z]", c)
+                letter_match = re.search("[_a-zA-Z]", c)
                 if letter_match:
                         l_token = [c]
                         c = self.__nextChar()
                         ## Determine all alphanumeric characters in token
-                        alphanumeric_match = re.search("[a-zA-Z0-9]",c)
+                        alphanumeric_match = re.search("[_a-zA-Z0-9]",c)
                         while alphanumeric_match:
                                 l_token.append(c)
                                 c = self.__nextChar()
-                                alphanumeric_match = re.search("[a-zA-Z0-9]",c)
+                                alphanumeric_match = re.search("[_a-zA-Z0-9]",c)
                         c = self.__backupChar()
                         s_token = "".join(l_token)
                         ## Determine if s_token is a reserved word
@@ -158,11 +158,19 @@ class Lexer:
                 ## Determine if c is the division operator / or
                 ## if it is a part of a comment marker /* or //
                 if c == "/":
-                		c = self.__nextChar()
-                		if c == "*": return("PUNCT", "/*")
-                		if c == "/": return("PUNCT", "//")
-                		c = self.__backupChar()
-                		return ("OP", "/")
+                    c = self.__nextChar()
+                    if c == "*":
+                        b_comment_block = True
+                        c = self.__nextChar()
+                        while b_comment_block:
+                            if c == "*":
+                                c = self.__nextChar()
+                                if c == "/":
+                                    c = self.__backupChar()
+                                    b_comment_block = False
+                                else: c = self.__nextChar()
+                            c = self.__nextChar()
+                    c = self.__nextChar()
 
                 ## Determine if c is a parenthesis, a curly bracket,
                 ## or a bracket

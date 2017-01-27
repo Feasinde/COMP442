@@ -3,6 +3,7 @@ import re
 class Lexer:
         s_source_program = ""
         i_index = -1
+        i_line_number = 1
 
         ## Constructor takes the source program as a string
         def __init__(self, s_source_program):
@@ -13,7 +14,10 @@ class Lexer:
         ## source program string
         def __nextChar(self):
                 self.i_index+=1
-                if self.i_index >= len(self.s_source_program): return " "
+                if self.i_index >= len(self.s_source_program): 
+                    return "\n"
+                if self.s_source_program[self.i_index] == "\n":
+                    self.i_line_number+=1
                 return self.s_source_program[self.i_index]
 
         ## Returns previous character in the source program string
@@ -23,6 +27,8 @@ class Lexer:
 
         ## Returns character immediately ahead of current character
         def __lookAhead(self):
+                if self.i_index + 1 == len(self.s_source_program):
+                    return " "
                 return self.s_source_program[self.i_index+1]
 
         ## Returns true if string is a reserved word
@@ -51,12 +57,12 @@ class Lexer:
         def reader(self):
                 for i in self.s_source_program:
                         type_token = self.nextToken()
-                        print(type_token)
+                        if not type_token == None:
+                            print(type_token)
         def nextToken(self):
-                s_type = ""
                 c = self.__nextChar()
-                while c == " ":
-                    c = self.__nextChar()
+                # while c == " ":
+                #     c = self.__nextChar()
                 ## Determine if c is a letter
                 letter_match = re.search("[_a-zA-Z]", c)
                 if letter_match:
@@ -71,8 +77,8 @@ class Lexer:
                         c = self.__backupChar()
                         s_token = "".join(l_token)
                         ## Determine if s_token is a reserved word
-                        if self.__isReservedWord(s_token): return ("RESWORD",s_token)
-                        return ("ID",s_token)
+                        if self.__isReservedWord(s_token): return ("RESWORD",s_token,self.i_line_number)
+                        return ("ID",s_token,self.i_line_number)
                 ## Determine if c is a number
                 number_match = re.search("[0-9]",c)
                 if number_match:
@@ -93,17 +99,17 @@ class Lexer:
                                 if not number_match:
                                         c = self.__backupChar()
                                         s_token = "".join(l_token)
-                                        return ("INT",s_token)
+                                        return ("INT",s_token,self.i_line_number)
                                 while number_match:
                                         l_token.append(c)
                                         c = self.__nextChar()
                                         number_match = re.search("[0-9]",c)
                                 c = self.__backupChar()
                                 s_token = "".join(l_token)
-                                return ("FLOAT", s_token)
+                                return ("FLOAT", s_token,self.i_line_number)
                         c = self.__backupChar()
                         s_token = "".join(l_token)
-                        return ("INT", s_token)
+                        return ("INT", s_token,self.i_line_number)
                 ## If c is a period, determine if it is the
                 ##beginning of a fraction or a stand-alone punctuation mark
                 if c == ".":
@@ -117,62 +123,64 @@ class Lexer:
                                         c = self.__nextChar()
                                 c = self.__backupChar()
                                 s_token = "".join(l_token)
-                                return ("FRAC", s_token)
+                                return ("FRAC", s_token,self.i_line_number)
                         c = self.__backupChar()
-                        return ("PUNCT", c)
+                        return ("PUNCT", c,self.i_line_number)
 
                 ## Determine if c is any punctuation mark of
                 ## the following: ; : ,
-                if c == ";" or c == ":" or c == ",": return ("PUNCT", c)
+                if c == ";" or c == ":" or c == ",": return ("PUNCT", c,self.i_line_number)
 
                 ## Determine if c is one of the following
                 ## operators: +, -, *
                 if c == "+" or c == "-" or c == "*":
-                        return ("OP", c)
+                        return ("OP", c,self.i_line_number)
 
                 # Determine if c is the operator = or if it
                 # is a part of the assign operator ==
                 if c == "=":
                         c = self.__nextChar()
-                        if c == "=": return ("OP", "==")
+                        if c == "=": return ("OP", "==",self.i_line_number)
                         c = self.__backupChar()
-                        return ("OP", "=")
+                        return ("OP", "=",self.i_line_number)
 
                 ## Determine if a character is the operator < or if it
                 ## is a part of either the operator <= or <>
                 if c == "<":
                         c = self.__nextChar()
-                        if c == "=": return ("OP", "<=")
-                        elif c == ">": return ("OP", "<>")
+                        if c == "=": return ("OP", "<=",self.i_line_number)
+                        elif c == ">": return ("OP", "<>",self.i_line_number)
                         else:
                                 c = self.__backupChar()
-                                return ("OP",c)
+                                return ("OP",c,self.i_line_number)
                 ## Determine if c is the operator > or if it
                 ## is a part of the operator >=
                 if c == ">":
                         c = self.__nextChar()
-                        if c == "=": return ("OP", ">=")
+                        if c == "=": return ("OP", ">=",self.i_line_number)
                         c = self.__backupChar()
-                        return ("OP", ">")
+                        return ("OP", ">",self.i_line_number)
 
                 ## Determine if c is the division operator / or
                 ## if it is a part of a comment marker /* or //
                 if c == "/":
-                    c = self.__nextChar()
-                    if c == "*":
-                        b_comment_block = True
+                    c_ahead = self.__lookAhead()
+                    if c_ahead == "/":
+                        while not c == "\n":
+                            c = self.__nextChar()
+                    elif c_ahead == "*":
                         c = self.__nextChar()
+                        b_comment_block = True
                         while b_comment_block:
+                            c = self.__nextChar()
                             if c == "*":
                                 c = self.__nextChar()
                                 if c == "/":
-                                    c = self.__backupChar()
                                     b_comment_block = False
-                                else: c = self.__nextChar()
-                            c = self.__nextChar()
-                    c = self.__nextChar()
+                    elif not c_ahead == "/" or not c_ahead == "*":
+                        return ("OP", "/", self.i_line_number)
 
                 ## Determine if c is a parenthesis, a curly bracket,
                 ## or a bracket
-                if c == "(" or c == "{" or c == "[": return ("PUNCT", c)
-                if c == ")" or c == "}" or c == "]": return ("PUNCT", c)
+                if c == "(" or c == "{" or c == "[": return ("PUNCT", c,self.i_line_number)
+                if c == ")" or c == "}" or c == "]": return ("PUNCT", c,self.i_line_number)

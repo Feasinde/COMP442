@@ -56,13 +56,13 @@ class Lexer:
                 return False
 
         ## Create error log or open existing error log
-        def __logError(self, i_invalid_char):
+        def __logError(self, s_invalid_char):
             if not isfile('error_log.txt'):
                 with open('error_log.txt', 'w') as error_log:
                     pass
             localtime = time.asctime( time.localtime(time.time()) )
             with open('error_log.txt','a') as error_log:
-                error_log.write(localtime + ": Invalid character '" + i_invalid_char + "' at line " + str(self.i_line_number)+'\n')
+                error_log.write(localtime + ": Invalid character '" + s_invalid_char + "' at line " + str(self.i_line_number)+'\n')
 
         ## Resets source program string and index
         def reset(self, s_source_program):
@@ -101,7 +101,7 @@ class Lexer:
                                 c = self.__nextChar()
                                 number_match = re.search("[0-9]",c)
                         ## Determine if there is a fraction. If not return
-                        ## token as a NUM
+                        ## token as a digit
                         if c == ".":
                                 c_ahead = self.__lookAhead()
                                 number_match = re.search("[0-9]",c_ahead)

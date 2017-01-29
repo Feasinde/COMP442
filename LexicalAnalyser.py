@@ -1,4 +1,13 @@
 import re
+import argparse
+import time
+from os.path import isfile
+
+            ################################################
+            ########## Begin lexer implementation ##########
+            ################################################
+
+c = None
 
 class Lexer:
         s_source_program = ""
@@ -6,7 +15,7 @@ class Lexer:
         i_line_number = 1
 
         ## Constructor takes the source program as a string
-        def __init__(self, s_source_program):
+        def __init__(self, s_source_program=""):
                 self.s_source_program = s_source_program
 
         ## Returns next character in the source program string.
@@ -14,10 +23,7 @@ class Lexer:
         ## source program string
         def __nextChar(self):
                 self.i_index+=1
-                if self.i_index >= len(self.s_source_program): 
-                    return "\n"
-                if self.s_source_program[self.i_index] == "\n":
-                    self.i_line_number+=1
+                if self.i_index >= len(self.s_source_program): return ""
                 return self.s_source_program[self.i_index]
 
         ## Returns previous character in the source program string
@@ -49,21 +55,24 @@ class Lexer:
                 if s_word in reserved_words: return True
                 return False
 
+        ## Create error log or open existing error log
+        def __logError(self, i_invalid_char):
+            if not isfile('error_log.txt'):
+                with open('error_log.txt', 'w') as error_log:
+                    pass
+            localtime = time.asctime( time.localtime(time.time()) )
+            with open('error_log.txt','a') as error_log:
+                error_log.write(localtime + ": Invalid character '" + i_invalid_char + "' at line " + str(self.i_line_number)+'\n')
+
         ## Resets source program string and index
         def reset(self, s_source_program):
                 self.s_source_program = s_source_program
                 self.i_index = -1
-
-        def reader(self):
-                for i in self.s_source_program:
-                        type_token = self.nextToken()
-                        if not type_token == None:
-                            print(type_token)
+        
         def nextToken(self):
                 c = self.__nextChar()
-                # while c == " ":
-                #     c = self.__nextChar()
-                ## Determine if c is a letter
+                while c == " " or c == '\t':
+                    c = self.__nextChar()
                 letter_match = re.search("[_a-zA-Z]", c)
                 if letter_match:
                         l_token = [c]
@@ -80,7 +89,7 @@ class Lexer:
                         if self.__isReservedWord(s_token): return ("RESWORD",s_token,self.i_line_number)
                         return ("ID",s_token,self.i_line_number)
                 ## Determine if c is a number
-                number_match = re.search("[0-9]",c)
+                number_match = re.search("[1-9]",c)
                 if number_match:
                         l_token = [c]
                         c = self.__nextChar()
@@ -91,25 +100,53 @@ class Lexer:
                                 l_token.append(c)
                                 c = self.__nextChar()
                                 number_match = re.search("[0-9]",c)
-                        ## Determine if there is a period. If not return
+                        ## Determine if there is a fraction. If not return
                         ## token as a NUM
                         if c == ".":
                                 c_ahead = self.__lookAhead()
                                 number_match = re.search("[0-9]",c_ahead)
                                 if not number_match:
-                                        c = self.__backupChar()
-                                        s_token = "".join(l_token)
-                                        return ("INT",s_token,self.i_line_number)
+                                    c = self.__backupChar()
+                                    s_token = "".join(l_token)
+                                    return ("INT",s_token,self.i_line_number)
                                 while number_match:
-                                        l_token.append(c)
-                                        c = self.__nextChar()
-                                        number_match = re.search("[0-9]",c)
-                                c = self.__backupChar()
+                                    l_token.append(c)
+                                    c = self.__nextChar()
+                                    number_match = re.search("[0-9]",c)
+                                while l_token[-1] == '0':
+                                    c = self.__backupChar()
+                                    l_token.pop()
+                                if c == '0':
+                                    l_token.append(c)
+                                else: c = self.__backupChar()
                                 s_token = "".join(l_token)
                                 return ("FLOAT", s_token,self.i_line_number)
                         c = self.__backupChar()
                         s_token = "".join(l_token)
                         return ("INT", s_token,self.i_line_number)
+                ## Determine if c is the number 0 or if it is the beginning
+                ## of a float
+                if c == '0':
+                    l_token = [c]
+                    c = self.__nextChar()
+                    if c == ".":
+                        c_ahead = self.__lookAhead()
+                        if re.search("[0-9]",c_ahead):
+                            l_token.append(c)
+                            c = self.__nextChar()
+                            while re.search('[1-9]',c):
+                                l_token.append(c)
+                                c = self.__nextChar()
+                            while l_token[-1] == '0':
+                                self.__backupChar()
+                                l_token.pop()
+                            if c == '0': l_token.append(c)
+                            else: self.__backupChar()
+                            s_token = "".join(l_token)
+                            return("FLOAT",s_token,self.i_line_number)
+                    c = self.__backupChar()
+                    return ("INT",c,self.i_line_number)
+
                 ## If c is a period, determine if it is the
                 ##beginning of a fraction or a stand-alone punctuation mark
                 if c == ".":
@@ -125,62 +162,140 @@ class Lexer:
                                 s_token = "".join(l_token)
                                 return ("FRAC", s_token,self.i_line_number)
                         c = self.__backupChar()
-                        return ("PUNCT", c,self.i_line_number)
+                        return ("PERIOD", c,self.i_line_number)
 
                 ## Determine if c is any punctuation mark of
                 ## the following: ; : ,
-                if c == ";" or c == ":" or c == ",": return ("PUNCT", c,self.i_line_number)
+                if c == ",": return ("COMMA", c,self.i_line_number)
+                if c == ";": return ("S_COL", c,self.i_line_number)
+                if c == ":": return ("COLON", c,self.i_line_number)
 
                 ## Determine if c is one of the following
                 ## operators: +, -, *
-                if c == "+" or c == "-" or c == "*":
-                        return ("OP", c,self.i_line_number)
+                if c == "+":
+                        return ("PLUS", c,self.i_line_number)
+
+                if c == "-":
+                        return ("MINUS", c,self.i_line_number)
+
+                if c == "*":
+                        return ("MULT", c,self.i_line_number)
 
                 # Determine if c is the operator = or if it
                 # is a part of the assign operator ==
                 if c == "=":
                         c = self.__nextChar()
-                        if c == "=": return ("OP", "==",self.i_line_number)
+                        if c == "=": return ("ASSIGN", "==",self.i_line_number)
                         c = self.__backupChar()
-                        return ("OP", "=",self.i_line_number)
+                        return ("EQ", "=",self.i_line_number)
 
                 ## Determine if a character is the operator < or if it
                 ## is a part of either the operator <= or <>
                 if c == "<":
                         c = self.__nextChar()
-                        if c == "=": return ("OP", "<=",self.i_line_number)
-                        elif c == ">": return ("OP", "<>",self.i_line_number)
+                        if c == "=": return ("LE", "<=",self.i_line_number)
+                        elif c == ">": return ("DIFF", "<>",self.i_line_number)
                         else:
                                 c = self.__backupChar()
-                                return ("OP",c,self.i_line_number)
+                                return ("LT",c,self.i_line_number)
                 ## Determine if c is the operator > or if it
                 ## is a part of the operator >=
                 if c == ">":
                         c = self.__nextChar()
-                        if c == "=": return ("OP", ">=",self.i_line_number)
+                        if c == "=": return ("GE", ">=",self.i_line_number)
                         c = self.__backupChar()
-                        return ("OP", ">",self.i_line_number)
+                        return ("GT", ">",self.i_line_number)
 
                 ## Determine if c is the division operator / or
                 ## if it is a part of a comment marker /* or //
                 if c == "/":
                     c_ahead = self.__lookAhead()
                     if c_ahead == "/":
-                        while not c == "\n":
+                        while not c == "\n" and self.i_index < len(self.s_source_program):
                             c = self.__nextChar()
                     elif c_ahead == "*":
                         c = self.__nextChar()
                         b_comment_block = True
                         while b_comment_block:
                             c = self.__nextChar()
+
                             if c == "*":
                                 c = self.__nextChar()
                                 if c == "/":
                                     b_comment_block = False
+                            if self.i_index >= len(self.s_source_program):
+                                b_comment_block = False
                     elif not c_ahead == "/" or not c_ahead == "*":
-                        return ("OP", "/", self.i_line_number)
+                        return ("DIVIS", "/", self.i_line_number)
 
                 ## Determine if c is a parenthesis, a curly bracket,
                 ## or a bracket
-                if c == "(" or c == "{" or c == "[": return ("PUNCT", c,self.i_line_number)
-                if c == ")" or c == "}" or c == "]": return ("PUNCT", c,self.i_line_number)
+                if c == "(": return ("OP_PAR", c,self.i_line_number)
+                if c == "{": return ("OP_CBRAC", c,self.i_line_number)
+                if c == "[": return ("OP_BRAC", c,self.i_line_number)
+
+                if c == ")": return ("CL_PAR", c,self.i_line_number)
+                if c == "}": return ("CL_CBRAC", c,self.i_line_number)
+                if c == "]": return ("CL_BRAC", c,self.i_line_number)
+
+                ## Determine if c is an illegal character
+                elif re.search('.', c):
+                    self.__logError(c)
+                    return ""
+
+            ###############################################
+            ########### End Lexer implementation ##########
+            ###############################################
+                                 ###
+                                 ###
+                                 ###
+                               #######
+                                #####
+                                 ###
+                                  # 
+            ###############################################
+            #### Begin command line call implementation ###
+            ###############################################
+
+## Setup flags and parameters
+parser = argparse.ArgumentParser(prog='Lexer', description='Takes a source string or a file and outputs its tokens')
+parser.add_argument('-f','--file')
+parser.add_argument('-s','--string')
+parser.add_argument('-o','--output')
+args = parser.parse_args()
+
+if args.output == None:
+    output = False
+else: output = True
+## Open output file if -o is included
+if output:
+    op = open(args.output, 'w')
+
+## If parameter is a string, tokenise from string
+if not args.string == None:
+    s_source = args.string
+    analyser = Lexer(s_source)
+    token = ""
+    while not token == None:
+        token = analyser.nextToken()
+        if not token == None:
+            if output:
+                op.write(str(token)+'\n')
+            else: print(token)
+
+## If parameter is a file, tokenise from file
+if not args.file == None:
+    with open(args.file) as file:
+        analyser = Lexer()
+        for line in file:
+            analyser.reset(line)
+            token = ""
+            while not token == None:
+                token = analyser.nextToken()
+                if not token == None and not token == "":
+                    if output:
+                        op.write(str(token)+'\n')
+                    else: print(token)
+            analyser.i_line_number+=1
+if output:
+    op.close()

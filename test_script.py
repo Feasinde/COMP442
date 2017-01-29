@@ -1,5 +1,9 @@
 from LexicalAnalyser import Lexer
 
-source = "antes/*  sda   */despues"
+source = "estas son palabras "
 analyser = Lexer(source)
-analyser.reader()
+c = ""
+while not c == None:
+	c = analyser.nextToken()
+	if not c == None:
+		print(c)

@@ -8,6 +8,10 @@ LexicalAnalyser is a Python module with a command-line interface. Simply run the
 
 ##Example of use:
 
-`$ python3 LexicalAnalyser.py -s 'HOLA MUNDO'
+`$ python3 LexicalAnalyser.py -s 'HOLA MUNDO'`
 
 The above line takes the string 'HOLA MUNDO' and outputs the two constituent tokens, 'HOLA' and 'MUNDO'.
+
+`$ python3 LexicalAnalyser.py -s 'BONJOUR LE MONDE' -o output.txt`
+
+The above line takes the string 'BONJOUR LE MONDE' and outputs its constituents to a the file `output.txt`.

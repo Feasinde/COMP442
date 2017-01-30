@@ -214,6 +214,7 @@ class Lexer:
                         while not c == "\n" and self.i_index < len(self.s_source_program):
                             c = self.__nextChar()
                     elif c_ahead == "*":
+                        print('HOAL')
                         c = self.__nextChar()
                         b_comment_block = True
                         while b_comment_block:
@@ -225,6 +226,7 @@ class Lexer:
                                     b_comment_block = False
                             if self.i_index >= len(self.s_source_program):
                                 b_comment_block = False
+                        return ""
                     elif not c_ahead == "/" or not c_ahead == "*":
                         return ("DIVIS", "/", self.i_line_number)
 

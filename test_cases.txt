@@ -11,6 +11,7 @@ the world is square
 if roses are red then violets are blue
 
 /* comment blocks are ignored by the lexer */
+/* another comment block */
 // comment lines are also ignored
 12
 54.21

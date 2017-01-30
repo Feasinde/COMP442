@@ -278,7 +278,7 @@ if not args.string == None:
     token = ""
     while not token == None:
         token = analyser.nextToken()
-        if not token == None:
+        if not token == None and not token == "":
             if output:
                 op.write(str(token)+'\n')
             else: print(token)

@@ -14,4 +14,12 @@ The above line takes the string 'HOLA MUNDO' and outputs the two constituent tok
 
 `$ python3 LexicalAnalyser.py -s 'BONJOUR LE MONDE' -o output.txt`
 
-The above line takes the string 'BONJOUR LE MONDE' and outputs its constituents to a the file `output.txt`.
+The above line takes the string 'BONJOUR LE MONDE' and outputs its constituents to the file `output.txt`.
+
+`$ python3 LexicalAnalyser.py -f hello_world.txt`
+
+The above line takes the file `hello_world.txt` and outputs its constituent tokens.
+
+`$ python3 LexicalAnalyser.py -f hello_world.txt -o output.txt`
+
+The above line takes the file `hello_world.txt` and outputs its constituent tokens to the file `output.txt`.

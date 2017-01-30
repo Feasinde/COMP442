@@ -214,12 +214,10 @@ class Lexer:
                         while not c == "\n" and self.i_index < len(self.s_source_program):
                             c = self.__nextChar()
                     elif c_ahead == "*":
-                        print('HOAL')
                         c = self.__nextChar()
                         b_comment_block = True
                         while b_comment_block:
                             c = self.__nextChar()
-
                             if c == "*":
                                 c = self.__nextChar()
                                 if c == "/":
